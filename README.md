@@ -20,9 +20,15 @@ A python3 runtime environment is required.
 
 `[python] [replace_substituents.py] [xxx.xyz (.xyz file)] [(atoms adjacent to atom to be replaced) (terminal atom to be replaced) ...] `
 
+`[python] [replace_substituents_v2.py] [xxx.xyz (.xyz file)] [t (if you want to optimize atom distance, please input a word except 't'.)] [(terminal atom to be replaced) ...] `
+
 ### Example
 ```
 python replace_substituent.py SEG_PHOS.xyz 2 23 2 24 20 25 20 26
+```
+
+```
+python replace_substituent_v2.py SEG_PHOS.xyz f 23 24 25 26
 ```
 
 ### License
