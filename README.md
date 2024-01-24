@@ -31,6 +31,10 @@ python replace_substituent.py SEG_PHOS.xyz 2 23 2 24 20 25 20 26
 python replace_substituent_v2.py SEG_PHOS.xyz f 23 24 25 26
 ```
 
+### TODO
+
+- coding this code in C++ language.
+
 ### License
 
 The license of this program is MIT license.
