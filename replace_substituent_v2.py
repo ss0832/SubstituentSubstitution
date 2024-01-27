@@ -90,8 +90,8 @@ class UnitValueLib:
 
 class ReplaceSubstituentGroup:
     def __init__(self):
-        self.rand_search_iter = 500
-        self.opt_max_iter = 150
+        self.rand_search_iter = 300
+        self.opt_max_iter = 100
         self.threshold = 10.0
         self.DELTA = 1e-4
         self.bohr2angstroms = UnitValueLib().bohr2angstroms
@@ -226,9 +226,13 @@ class ReplaceSubstituentGroup:
             tmp_rot_coord = self.rotate_points_around_vector(tmp_coord, np.array([0, 0, 1]), angle)
             rot, _ = R.align_vectors([vector], [[0, 0, 1]])
             rot_coord = rot.apply(tmp_rot_coord)
-
+           
+            prev_coord = copy.copy(coord)
             coord[sub_atom_list[i]] = copy.copy(rot_coord + coord[atom_pairs[i][0]])
-            coord[[atom_pairs[i][1]] + sub_atom_list[i]] = copy.copy(coord[[atom_pairs[i][1]] +  sub_atom_list[i]] - np.linalg.norm(vector) * vector + length * vector)
+            
+            
+            coord[[atom_pairs[i][1]] + sub_atom_list[i]] = copy.copy(coord[[atom_pairs[i][1]] + sub_atom_list[i]] - vector + length * vector/np.linalg.norm(vector))
+            
 
         return coord
         
@@ -259,7 +263,7 @@ class ReplaceSubstituentGroup:
         try:
             move_vector = DELTA_for_QNM*np.dot(np.linalg.inv(new_hess), g)
         except:
-            move_vector = g / np.linalg.norm(g) * 0.01
+            move_vector = g / np.linalg.norm(g) * min(0.1, np.linalg.norm(g))
         
         self.model_hess = new_hess
         return move_vector
@@ -274,9 +278,9 @@ class ReplaceSubstituentGroup:
         for i in range(self.rand_search_iter): 
 
             valiables = self.atom_struct_randomizer(coord, element_list, self.atom_pairs)
-           
+            
             coord = self.atom_struct_changer(coord, sub_atom_list, self.atom_pairs, valiables)
-           
+            
             
             candidate_ene = self.LJ_potential(element_list, coord / self.bohr2angstroms, sub_atom_list) + self.elecstatic_potential(element_list, coord / self.bohr2angstroms, sub_atom_list)
             if candidate_ene < min_energy_score:
@@ -294,7 +298,7 @@ class ReplaceSubstituentGroup:
             cov_dist_list.append(cov_dist)
         
         if self.opt_flag:
-            print("optimization carried out...")
+            print("optimize molecule structure...")
             for i in range(self.opt_max_iter):
                 print("# ITR. "+str(i))
                 grad_list = []
@@ -320,23 +324,40 @@ class ReplaceSubstituentGroup:
                 print("gradient : ", grad_list)
                 if i == 0:
                     prev_valiables = copy.copy(min_valiables)
-                    min_valiables -= grad_list / np.linalg.norm(grad_list) * 1e-5
+                    
+                    if not self.rand_dist_flag:
+                        for k in range(int(len(grad_list)/2)):
+                            min_valiables[2*k] -= grad_list[2*k] / np.linalg.norm(grad_list) * 1e-5
+                           
+                    else:
+                        min_valiables -= grad_list / np.linalg.norm(grad_list) * 1e-5
                 else:
                     move_vector = self.FSB_quasi_newton_method(min_valiables, prev_valiables, prev_grad_list, grad_list)
                     
-                    step_radii = min(np.linalg.norm(move_vector), 0.01)
+                    step_radii = min(np.linalg.norm(move_vector), 0.1)
                     
                     prev_valiables = copy.copy(min_valiables)
-                    min_valiables -= step_radii * move_vector / np.linalg.norm(move_vector)
+                    
+                    
+                    if not self.rand_dist_flag:
+                        for k in range(int(len(grad_list)/2)):
+                            min_valiables[2*k] -= step_radii * move_vector[2*k] / np.linalg.norm(move_vector)
+                           
+                    else:
+                        min_valiables -= step_radii * move_vector / np.linalg.norm(move_vector)
                  
                 prev_grad_list = grad_list
                 print("valiables (angle(rad.), distance(Bohr) ...): ", min_valiables)
                 print("grad : |"+str(np.linalg.norm(grad_list))+"|")
+                
+                
                 if self.rand_dist_flag:
                     for k in range(int(len(grad_list)/2)):
                         
                         min_valiables[2*k+1] = np.clip(min_valiables[2*k+1], cov_dist_list[k]*0.95, cov_dist_list[k]*1.1)
-                        
+                else:
+                    pass
+                    
                 
                 
                 if np.linalg.norm(grad_list) < self.threshold:
@@ -370,8 +391,8 @@ class ReplaceSubstituentGroup:
                 rot, _ = R.align_vectors([main_molecule_vector], [sub_vector])
                 base_point_sub_coord = sub_coord - sub_coord[1]
                 after_rot_base_point_sub_coord = rot.apply(base_point_sub_coord)
-                after_rot_sub_coord = after_rot_base_point_sub_coord + coord[pair[0]]
-                #after_rot_sub_coord = rotate_points_around_vector(after_rot_sub_coord, main_molecule_vector, 90)
+                after_rot_sub_coord = after_rot_base_point_sub_coord + coord[pair[0]] 
+                after_rot_sub_coord = after_rot_sub_coord + (after_rot_sub_coord[1] - after_rot_sub_coord[0]) + main_molecule_vector
                 element_list[pair[1]] = sub_element_list[0]
                 coord = np.block([[coord], [after_rot_sub_coord[2:]]])
                 element_list += sub_element_list[2:] 
