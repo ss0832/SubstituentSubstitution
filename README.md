@@ -11,6 +11,8 @@ Do not change the name of the "substance_group" folder (the program will not wor
 
 A python3 runtime environment is required.
 
+replace_ligand.py is a program that performs ligand replacement.
+
 ### Required modules
  - scipy
  - numpy
@@ -34,6 +36,9 @@ python replace_substituent_v2.py SEG_PHOS.xyz f 23 24 25 26
 ### TODO
 
 - coding this code in C++ language.
+- Improvement of the algorithm of replace_ligand.py (I can't replace different kinds of ligands well. Currently, the structure output by xTB and others must be coarsely optimized to be usable).
+
+
 
 ### License
 
